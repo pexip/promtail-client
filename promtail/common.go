@@ -24,7 +24,7 @@ type ClientConfig struct {
 	// E.g. http://localhost:3100/api/prom/push
 	PushURL string
 	// E.g. "{job=\"somejob\"}"
-	Labels             string
+	Labels             LabelSet
 	BatchWait          time.Duration
 	BatchEntriesNumber int
 	// Logs are sent to Promtail if the entry level is >= SendLevel

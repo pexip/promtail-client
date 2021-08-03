@@ -144,25 +144,25 @@ func (c *clientJson) send(entries []*jsonLogEntry) {
 	}()
 
 	streams = append(streams, promtailStream{
-		Labels:  c.config.Labels,
+		Labels:  c.config.Labels.String(),
 		Entries: entries,
 	})
 
 	msg := promtailMsg{Streams: streams}
 	jsonMsg, err := json.Marshal(msg)
 	if err != nil {
-		log.Println("unable to marshal a JSON document")
+		log.Println("unable to marshal a json document")
 		return
 	}
 
 	resp, body, err := c.client.sendJsonReq("POST", c.config.PushURL, "application/json", jsonMsg)
 	if err != nil {
-		log.Printf("unable to send an HTTP request: %v", err)
+		log.Printf("unable to send an http request: %v", err)
 		return
 	}
 
 	if resp.StatusCode != 204 {
-		log.Printf("unexpected HTTP status code: %d, message: %s\n", resp.StatusCode, body)
+		log.Printf("unexpected http status code: %d, message: %s\n", resp.StatusCode, body)
 		return
 	}
 }

@@ -51,7 +51,11 @@ func main() {
 		displayInvalidName("job-name")
 	}
 
-	labels := "{source=\"" + source_name + "\",job=\"" + job_name + "\"}"
+	labels := make(promtail.LabelSet)
+	labels = labels.
+		Append("source", source_name).
+		Append("job", job_name)
+
 	conf := promtail.ClientConfig{
 		PushURL:            "http://localhost:3100/api/prom/push",
 		Labels:             labels,

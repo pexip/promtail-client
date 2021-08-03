@@ -143,7 +143,7 @@ func (c *clientProto) send(entries []*logproto.Entry) {
 	}()
 
 	streams = append(streams, &logproto.Stream{
-		Labels:  c.config.Labels,
+		Labels:  c.config.Labels.String(),
 		Entries: entries,
 	})
 
@@ -161,12 +161,12 @@ func (c *clientProto) send(entries []*logproto.Entry) {
 
 	resp, body, err := c.client.sendJsonReq("POST", c.config.PushURL, "application/x-protobuf", buf)
 	if err != nil {
-		log.Printf("unable to send an HTTP request: %v", err)
+		log.Printf("unable to send an http request: %v", err)
 		return
 	}
 
 	if resp.StatusCode != 204 {
-		log.Printf("unexpected HTTP status code: %d, message: %s\n", resp.StatusCode, body)
+		log.Printf("unexpected http status code: %d, message: %s\n", resp.StatusCode, body)
 		return
 	}
 }
