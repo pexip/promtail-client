@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/habakke/promtail-client/promtail"
 	"log"
+	"net/http"
 	"os"
 	"time"
 )
@@ -65,10 +66,12 @@ func main() {
 		err  error
 	)
 
+	c := &http.Client{Timeout: time.Duration(1) * time.Second}
+
 	if format == "proto" {
-		loki, err = promtail.NewClientProto(conf)
+		loki, err = promtail.NewClientProto(conf, c)
 	} else {
-		loki, err = promtail.NewClientJson(conf)
+		loki, err = promtail.NewClientJson(conf, c)
 	}
 
 	if err != nil {
