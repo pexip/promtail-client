@@ -2,11 +2,13 @@ package promtail
 
 import (
 	"fmt"
+	"github.com/afiskon/promtail-client/logproto"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/golang/snappy"
-	"github.com/afiskon/promtail-client/logproto"
-	"log"
+	"github.com/rs/zerolog/log"
+	"golang.org/x/oauth2"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -22,14 +24,19 @@ type clientProto struct {
 	entries   chan protoLogEntry
 	waitGroup sync.WaitGroup
 	client    httpClient
+	token     *oauth2.Token
+	sent      int
+	buffered  int
 }
 
-func NewClientProto(conf ClientConfig) (Client, error) {
+func NewClientProto(conf ClientConfig, parent *http.Client) (Client, error) {
 	client := clientProto{
 		config:  &conf,
 		quit:    make(chan struct{}),
 		entries: make(chan protoLogEntry, LOG_ENTRIES_CHAN_SIZE),
-		client:  httpClient{},
+		client: httpClient{
+			parent: *parent,
+		},
 	}
 
 	client.waitGroup.Add(1)
@@ -75,6 +82,14 @@ func (c *clientProto) Shutdown() {
 	c.waitGroup.Wait()
 }
 
+func (c *clientProto) Sent() int {
+	return c.sent
+}
+
+func (c *clientProto) Buffered() int {
+	return c.buffered
+}
+
 func (c *clientProto) run() {
 	var batch []*logproto.Entry
 	batchSize := 0
@@ -93,6 +108,7 @@ func (c *clientProto) run() {
 		case <-c.quit:
 			return
 		case entry := <-c.entries:
+			c.buffered++
 			if entry.level >= c.config.PrintLevel {
 				log.Print(entry.entry.Line)
 			}
@@ -120,6 +136,12 @@ func (c *clientProto) run() {
 
 func (c *clientProto) send(entries []*logproto.Entry) {
 	var streams []*logproto.Stream
+	batchSize := len(entries)
+	defer func() {
+		c.buffered = c.buffered - batchSize
+		c.sent = c.sent + batchSize
+	}()
+
 	streams = append(streams, &logproto.Stream{
 		Labels:  c.config.Labels,
 		Entries: entries,
@@ -131,7 +153,7 @@ func (c *clientProto) send(entries []*logproto.Entry) {
 
 	buf, err := proto.Marshal(&req)
 	if err != nil {
-		log.Printf("promtail.ClientProto: unable to marshal: %s\n", err)
+		log.Error().Err(err).Msg("unable to marshal")
 		return
 	}
 
@@ -139,12 +161,12 @@ func (c *clientProto) send(entries []*logproto.Entry) {
 
 	resp, body, err := c.client.sendJsonReq("POST", c.config.PushURL, "application/x-protobuf", buf)
 	if err != nil {
-		log.Printf("promtail.ClientProto: unable to send an HTTP request: %s\n", err)
+		log.Error().Err(err).Msgf("unable to send an HTTP request")
 		return
 	}
 
 	if resp.StatusCode != 204 {
-		log.Printf("promtail.ClientProto: Unexpected HTTP status code: %d, message: %s\n", resp.StatusCode, body)
+		log.Error().Msgf("unexpected HTTP status code: %d, message: %s\n", resp.StatusCode, body)
 		return
 	}
 }

@@ -39,6 +39,8 @@ type Client interface {
 	Warnf(format string, args ...interface{})
 	Errorf(format string, args ...interface{})
 	Shutdown()
+	Sent() int
+	Buffered() int
 }
 
 // http.Client wrapper for adding new methods, particularly sendJsonReq

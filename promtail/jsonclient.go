@@ -3,7 +3,9 @@ package promtail
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
+	"golang.org/x/oauth2"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -11,7 +13,7 @@ import (
 type jsonLogEntry struct {
 	Ts    time.Time `json:"ts"`
 	Line  string    `json:"line"`
-	level LogLevel // not used in JSON
+	level LogLevel  // not used in JSON
 }
 
 type promtailStream struct {
@@ -29,14 +31,19 @@ type clientJson struct {
 	entries   chan *jsonLogEntry
 	waitGroup sync.WaitGroup
 	client    httpClient
+	token     *oauth2.Token
+	sent      int
+	buffered  int
 }
 
-func NewClientJson(conf ClientConfig) (Client, error) {
+func NewClientJson(conf ClientConfig, parent *http.Client) (Client, error) {
 	client := clientJson{
 		config:  &conf,
 		quit:    make(chan struct{}),
 		entries: make(chan *jsonLogEntry, LOG_ENTRIES_CHAN_SIZE),
-		client:  httpClient{},
+		client: httpClient{
+			parent: *parent,
+		},
 	}
 
 	client.waitGroup.Add(1)
@@ -76,6 +83,14 @@ func (c *clientJson) Shutdown() {
 	c.waitGroup.Wait()
 }
 
+func (c *clientJson) Sent() int {
+	return c.sent
+}
+
+func (c *clientJson) Buffered() int {
+	return c.buffered
+}
+
 func (c *clientJson) run() {
 	var batch []*jsonLogEntry
 	batchSize := 0
@@ -94,8 +109,9 @@ func (c *clientJson) run() {
 		case <-c.quit:
 			return
 		case entry := <-c.entries:
+			c.buffered++
 			if entry.level >= c.config.PrintLevel {
-				log.Print(entry.Line)
+				log.Info().Msg(entry.Line)
 			}
 
 			if entry.level >= c.config.SendLevel {
@@ -121,6 +137,12 @@ func (c *clientJson) run() {
 
 func (c *clientJson) send(entries []*jsonLogEntry) {
 	var streams []promtailStream
+	batchSize := len(entries)
+	defer func() {
+		c.buffered = c.buffered - batchSize
+		c.sent = c.sent + batchSize
+	}()
+
 	streams = append(streams, promtailStream{
 		Labels:  c.config.Labels,
 		Entries: entries,
@@ -129,18 +151,18 @@ func (c *clientJson) send(entries []*jsonLogEntry) {
 	msg := promtailMsg{Streams: streams}
 	jsonMsg, err := json.Marshal(msg)
 	if err != nil {
-		log.Printf("promtail.ClientJson: unable to marshal a JSON document: %s\n", err)
+		log.Error().Err(err).Msg("unable to marshal a JSON document")
 		return
 	}
 
 	resp, body, err := c.client.sendJsonReq("POST", c.config.PushURL, "application/json", jsonMsg)
 	if err != nil {
-		log.Printf("promtail.ClientJson: unable to send an HTTP request: %s\n", err)
+		log.Error().Err(err).Msg("unable to send an HTTP request")
 		return
 	}
 
 	if resp.StatusCode != 204 {
-		log.Printf("promtail.ClientJson: Unexpected HTTP status code: %d, message: %s\n", resp.StatusCode, body)
+		log.Error().Msgf("unexpected HTTP status code: %d, message: %s\n", resp.StatusCode, body)
 		return
 	}
 }
