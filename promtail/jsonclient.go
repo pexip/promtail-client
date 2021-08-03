@@ -3,8 +3,8 @@ package promtail
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -111,7 +111,7 @@ func (c *clientJson) run() {
 		case entry := <-c.entries:
 			c.buffered++
 			if entry.level >= c.config.PrintLevel {
-				log.Info().Msg(entry.Line)
+				log.Printf(entry.Line)
 			}
 
 			if entry.level >= c.config.SendLevel {
@@ -151,18 +151,18 @@ func (c *clientJson) send(entries []*jsonLogEntry) {
 	msg := promtailMsg{Streams: streams}
 	jsonMsg, err := json.Marshal(msg)
 	if err != nil {
-		log.Error().Err(err).Msg("unable to marshal a JSON document")
+		log.Println("unable to marshal a JSON document")
 		return
 	}
 
 	resp, body, err := c.client.sendJsonReq("POST", c.config.PushURL, "application/json", jsonMsg)
 	if err != nil {
-		log.Error().Err(err).Msg("unable to send an HTTP request")
+		log.Printf("unable to send an HTTP request: %v", err)
 		return
 	}
 
 	if resp.StatusCode != 204 {
-		log.Error().Msgf("unexpected HTTP status code: %d, message: %s\n", resp.StatusCode, body)
+		log.Printf("unexpected HTTP status code: %d, message: %s\n", resp.StatusCode, body)
 		return
 	}
 }

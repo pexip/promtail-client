@@ -2,12 +2,12 @@ package promtail
 
 import (
 	"fmt"
-	"github.com/afiskon/promtail-client/logproto"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/golang/snappy"
-	"github.com/rs/zerolog/log"
+	"github.com/habakke/promtail-client/logproto"
 	"golang.org/x/oauth2"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -153,7 +153,7 @@ func (c *clientProto) send(entries []*logproto.Entry) {
 
 	buf, err := proto.Marshal(&req)
 	if err != nil {
-		log.Error().Err(err).Msg("unable to marshal")
+		log.Printf("unable to marshal")
 		return
 	}
 
@@ -161,12 +161,12 @@ func (c *clientProto) send(entries []*logproto.Entry) {
 
 	resp, body, err := c.client.sendJsonReq("POST", c.config.PushURL, "application/x-protobuf", buf)
 	if err != nil {
-		log.Error().Err(err).Msgf("unable to send an HTTP request")
+		log.Printf("unable to send an HTTP request: %v", err)
 		return
 	}
 
 	if resp.StatusCode != 204 {
-		log.Error().Msgf("unexpected HTTP status code: %d, message: %s\n", resp.StatusCode, body)
+		log.Printf("unexpected HTTP status code: %d, message: %s\n", resp.StatusCode, body)
 		return
 	}
 }
