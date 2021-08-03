@@ -13,6 +13,14 @@ func (ls LabelSet) Append(label string, value string) LabelSet {
 	return ls
 }
 
+func (ls LabelSet) Copy() LabelSet {
+	c := make(LabelSet, len(ls))
+	for k, v := range ls {
+		c[k] = v
+	}
+	return c
+}
+
 func (ls LabelSet) String() string {
 	d := make([]string, 0, len(ls))
 	for k, v := range ls {
