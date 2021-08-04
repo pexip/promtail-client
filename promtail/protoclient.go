@@ -1,7 +1,6 @@
 package promtail
 
 import (
-	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/golang/snappy"
@@ -45,24 +44,8 @@ func NewClientProto(conf ClientConfig, parent *http.Client) (Client, error) {
 	return &client, nil
 }
 
-func (c *clientProto) Debugf(format string, args ...interface{}) {
-	c.log(format, DEBUG, "Debug: ", args...)
-}
-
-func (c *clientProto) Infof(format string, args ...interface{}) {
-	c.log(format, INFO, "Info: ", args...)
-}
-
-func (c *clientProto) Warnf(format string, args ...interface{}) {
-	c.log(format, WARN, "Warn: ", args...)
-}
-
-func (c *clientProto) Errorf(format string, args ...interface{}) {
-	c.log(format, ERROR, "Error: ", args...)
-}
-
-func (c *clientProto) log(format string, level LogLevel, prefix string, args ...interface{}) {
-	if (level >= c.config.SendLevel) || (level >= c.config.PrintLevel) {
+func (c *clientProto) Log(line string, level LogLevel) {
+	if level <= c.config.SendLevel {
 		now := time.Now().UnixNano()
 		c.entries <- protoLogEntry{
 			entry: &logproto.Entry{
@@ -70,7 +53,7 @@ func (c *clientProto) log(format string, level LogLevel, prefix string, args ...
 					Seconds: now / int64(time.Second),
 					Nanos:   int32(now % int64(time.Second)),
 				},
-				Line: fmt.Sprintf(prefix+format, args...),
+				Line: line,
 			},
 			level: level,
 		}
@@ -109,11 +92,7 @@ func (c *clientProto) run() {
 			return
 		case entry := <-c.entries:
 			c.buffered++
-			if entry.level >= c.config.PrintLevel {
-				log.Print(entry.entry.Line)
-			}
-
-			if entry.level >= c.config.SendLevel {
+			if entry.level <= c.config.SendLevel {
 				batch = append(batch, entry.entry)
 				batchSize++
 				if batchSize >= c.config.BatchEntriesNumber {

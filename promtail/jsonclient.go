@@ -2,7 +2,6 @@ package promtail
 
 import (
 	"encoding/json"
-	"fmt"
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
@@ -52,27 +51,11 @@ func NewClientJson(conf ClientConfig, parent *http.Client) (Client, error) {
 	return &client, nil
 }
 
-func (c *clientJson) Debugf(format string, args ...interface{}) {
-	c.log(format, DEBUG, "Debug: ", args...)
-}
-
-func (c *clientJson) Infof(format string, args ...interface{}) {
-	c.log(format, INFO, "Info: ", args...)
-}
-
-func (c *clientJson) Warnf(format string, args ...interface{}) {
-	c.log(format, WARN, "Warn: ", args...)
-}
-
-func (c *clientJson) Errorf(format string, args ...interface{}) {
-	c.log(format, ERROR, "Error: ", args...)
-}
-
-func (c *clientJson) log(format string, level LogLevel, prefix string, args ...interface{}) {
-	if (level >= c.config.SendLevel) || (level >= c.config.PrintLevel) {
+func (c *clientJson) Log(line string, level LogLevel) {
+	if level <= c.config.SendLevel {
 		c.entries <- &jsonLogEntry{
 			Ts:    time.Now(),
-			Line:  fmt.Sprintf(prefix+format, args...),
+			Line:  line,
 			level: level,
 		}
 	}
@@ -110,11 +93,7 @@ func (c *clientJson) run() {
 			return
 		case entry := <-c.entries:
 			c.buffered++
-			if entry.level >= c.config.PrintLevel {
-				log.Printf(entry.Line)
-			}
-
-			if entry.level >= c.config.SendLevel {
+			if entry.level <= c.config.SendLevel {
 				batch = append(batch, entry)
 				batchSize++
 				if batchSize >= c.config.BatchEntriesNumber {

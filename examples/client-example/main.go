@@ -61,8 +61,7 @@ func main() {
 		Labels:             labels,
 		BatchWait:          5 * time.Second,
 		BatchEntriesNumber: 10000,
-		SendLevel:          promtail.INFO,
-		PrintLevel:         promtail.ERROR,
+		SendLevel:          promtail.DEBUG,
 	}
 
 	var (
@@ -85,10 +84,10 @@ func main() {
 
 	for i := 1; i < 5; i++ {
 		tstamp := time.Now().String()
-		loki.Debugf("source = %s time = %s, i = %d\n", source_name, tstamp, i)
-		loki.Infof("source = %s, time = %s, i = %d\n", source_name, tstamp, i)
-		loki.Warnf("source = %s, time = %s, i = %d\n", source_name, tstamp, i)
-		loki.Errorf("source = %s, time = %s, i = %d\n", source_name, tstamp, i)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.DEBUG)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.INFO)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.WARNING)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.ERROR)
 		time.Sleep(1 * time.Second)
 	}
 

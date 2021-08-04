@@ -12,12 +12,12 @@ const LOG_ENTRIES_CHAN_SIZE = 5000
 type LogLevel int
 
 const (
-	DEBUG LogLevel = iota
-	INFO  LogLevel = iota
-	WARN  LogLevel = iota
-	ERROR LogLevel = iota
-	// Maximum level, disables sending or printing
-	DISABLE LogLevel = iota
+	CRITICAL LogLevel = 2
+	ERROR    LogLevel = 3
+	WARNING  LogLevel = 4
+	NOTICE   LogLevel = 5
+	INFO     LogLevel = 6
+	DEBUG    LogLevel = 7
 )
 
 type ClientConfig struct {
@@ -27,17 +27,12 @@ type ClientConfig struct {
 	Labels             LabelSet
 	BatchWait          time.Duration
 	BatchEntriesNumber int
-	// Logs are sent to Promtail if the entry level is >= SendLevel
+	// Logs are sent to Promtail if the entry level is <= SendLevel
 	SendLevel LogLevel
-	// Logs are printed to stdout if the entry level is >= PrintLevel
-	PrintLevel LogLevel
 }
 
 type Client interface {
-	Debugf(format string, args ...interface{})
-	Infof(format string, args ...interface{})
-	Warnf(format string, args ...interface{})
-	Errorf(format string, args ...interface{})
+	Log(Line string, level LogLevel)
 	Shutdown()
 	Sent() int
 	Buffered() int
