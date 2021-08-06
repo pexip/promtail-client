@@ -2,6 +2,7 @@ package promtail
 
 import (
 	"fmt"
+	"hash/fnv"
 	"sort"
 	"strings"
 )
@@ -29,4 +30,38 @@ func (ls LabelSet) String() string {
 
 	sort.Strings(d)
 	return fmt.Sprintf("{%s}", strings.Join(d, ", "))
+}
+
+func (ls LabelSet) WithExtras(extra LabelSet) LabelSet {
+	d := make(LabelSet, len(ls))
+	for k, v := range ls {
+		d[k] = v
+	}
+	for k, v := range extra {
+		d[k] = v
+	}
+	return d
+}
+
+func hash(arr []string) uint64 {
+	h := fnv.New64a()
+	for _, s := range arr {
+		_, _ = h.Write([]byte(s))
+	}
+
+	return h.Sum64()
+}
+
+func (ls LabelSet) Fingerprint() uint64 {
+	if len(ls) == 0 {
+		return 0
+	}
+
+	var labels []string
+	for k := range ls {
+		labels = append(labels, k)
+	}
+	sort.Strings(labels)
+	hash := hash(labels)
+	return hash
 }

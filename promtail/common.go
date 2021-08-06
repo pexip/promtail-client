@@ -32,7 +32,7 @@ type ClientConfig struct {
 }
 
 type Client interface {
-	Log(Line string, level LogLevel)
+	Log(Line string, level LogLevel, extraLabels LabelSet)
 	Shutdown()
 	Sent() int
 	Buffered() int

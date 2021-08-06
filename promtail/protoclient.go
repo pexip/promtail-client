@@ -13,8 +13,9 @@ import (
 )
 
 type protoLogEntry struct {
-	entry *logproto.Entry
-	level LogLevel
+	entry       *logproto.Entry
+	level       LogLevel
+	extraLabels LabelSet
 }
 
 type clientProto struct {
@@ -44,8 +45,8 @@ func NewClientProto(conf ClientConfig, parent *http.Client) (Client, error) {
 	return &client, nil
 }
 
-func (c *clientProto) Log(line string, level LogLevel) {
-	if level <= c.config.SendLevel {
+func (c *clientProto) Log(line string, level LogLevel, extraLabels LabelSet) {
+	if level >= c.config.SendLevel {
 		now := time.Now().UnixNano()
 		c.entries <- protoLogEntry{
 			entry: &logproto.Entry{
@@ -55,7 +56,8 @@ func (c *clientProto) Log(line string, level LogLevel) {
 				},
 				Line: line,
 			},
-			level: level,
+			level:       level,
+			extraLabels: extraLabels.Copy(),
 		}
 	}
 }
@@ -74,7 +76,7 @@ func (c *clientProto) Buffered() int {
 }
 
 func (c *clientProto) run() {
-	var batch []*logproto.Entry
+	batch := NewBatchMap()
 	batchSize := 0
 	maxWait := time.NewTimer(c.config.BatchWait)
 
@@ -92,12 +94,12 @@ func (c *clientProto) run() {
 			return
 		case entry := <-c.entries:
 			c.buffered++
-			if entry.level <= c.config.SendLevel {
-				batch = append(batch, entry.entry)
+			if entry.level >= c.config.SendLevel {
+				batch.Append(entry.extraLabels, entry.entry)
 				batchSize++
 				if batchSize >= c.config.BatchEntriesNumber {
 					c.send(batch)
-					batch = []*logproto.Entry{}
+					batch = NewBatchMap()
 					batchSize = 0
 					maxWait.Reset(c.config.BatchWait)
 				}
@@ -105,7 +107,7 @@ func (c *clientProto) run() {
 		case <-maxWait.C:
 			if batchSize > 0 {
 				c.send(batch)
-				batch = []*logproto.Entry{}
+				batch = NewBatchMap()
 				batchSize = 0
 			}
 			maxWait.Reset(c.config.BatchWait)
@@ -113,18 +115,23 @@ func (c *clientProto) run() {
 	}
 }
 
-func (c *clientProto) send(entries []*logproto.Entry) {
+func (c *clientProto) send(batchMap BatchMap) {
 	var streams []*logproto.Stream
-	batchSize := len(entries)
+
+	// Generate some statistics :)
+	batchSize := 0
 	defer func() {
 		c.buffered = c.buffered - batchSize
 		c.sent = c.sent + batchSize
 	}()
 
-	streams = append(streams, &logproto.Stream{
-		Labels:  c.config.Labels.String(),
-		Entries: entries,
-	})
+	for _, batch := range batchMap {
+		batchSize += len(batch.entries)
+		streams = append(streams, &logproto.Stream{
+			Labels:  c.config.Labels.WithExtras(batch.labels).String(),
+			Entries: batch.entries,
+		})
+	}
 
 	req := logproto.PushRequest{
 		Streams: streams,

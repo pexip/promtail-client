@@ -71,23 +71,21 @@ func main() {
 
 	c := &http.Client{Timeout: time.Duration(1) * time.Second}
 
-	if format == "proto" {
-		loki, err = promtail.NewClientProto(conf, c)
-	} else {
-		loki, err = promtail.NewClientJson(conf, c)
-	}
+	loki, err = promtail.NewClientProto(conf, c)
 
 	if err != nil {
 		log.Printf("promtail.NewClient: %s\n", err)
 		os.Exit(1)
 	}
 
+	extralabels := promtail.LabelSet{}
 	for i := 1; i < 5; i++ {
 		tstamp := time.Now().String()
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.DEBUG)
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.INFO)
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.WARNING)
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.ERROR)
+		extralabels.Append("seq", fmt.Sprintf("%d", i))
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.DEBUG, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.INFO, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.WARNING, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.ERROR, extralabels)
 		time.Sleep(1 * time.Second)
 	}
 
