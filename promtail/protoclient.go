@@ -46,19 +46,17 @@ func NewClientProto(conf ClientConfig, parent *http.Client) (Client, error) {
 }
 
 func (c *clientProto) Log(line string, level LogLevel, extraLabels LabelSet) {
-	if level >= c.config.SendLevel {
-		now := time.Now().UnixNano()
-		c.entries <- protoLogEntry{
-			entry: &logproto.Entry{
-				Timestamp: &timestamp.Timestamp{
-					Seconds: now / int64(time.Second),
-					Nanos:   int32(now % int64(time.Second)),
-				},
-				Line: line,
+	now := time.Now().UnixNano()
+	c.entries <- protoLogEntry{
+		entry: &logproto.Entry{
+			Timestamp: &timestamp.Timestamp{
+				Seconds: now / int64(time.Second),
+				Nanos:   int32(now % int64(time.Second)),
 			},
-			level:       level,
-			extraLabels: extraLabels.Copy(),
-		}
+			Line: line,
+		},
+		level:       level,
+		extraLabels: extraLabels.Copy(),
 	}
 }
 
@@ -94,15 +92,13 @@ func (c *clientProto) run() {
 			return
 		case entry := <-c.entries:
 			c.buffered++
-			if entry.level >= c.config.SendLevel {
-				batch.Append(entry.extraLabels, entry.entry)
-				batchSize++
-				if batchSize >= c.config.BatchEntriesNumber {
-					c.send(batch)
-					batch = NewBatchMap()
-					batchSize = 0
-					maxWait.Reset(c.config.BatchWait)
-				}
+			batch.Append(entry.extraLabels, entry.entry)
+			batchSize++
+			if batchSize >= c.config.BatchEntriesNumber {
+				c.send(batch)
+				batch = NewBatchMap()
+				batchSize = 0
+				maxWait.Reset(c.config.BatchWait)
 			}
 		case <-maxWait.C:
 			if batchSize > 0 {
