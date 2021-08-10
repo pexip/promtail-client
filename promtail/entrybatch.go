@@ -1,6 +1,6 @@
 package promtail
 
-import "github.com/habakke/promtail-client/logproto"
+import "github.com/pexip/promtail-client/logproto"
 
 type BatchMap map[uint64]*EntryBatch
 

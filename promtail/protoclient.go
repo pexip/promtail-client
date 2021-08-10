@@ -4,7 +4,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/golang/snappy"
-	"github.com/habakke/promtail-client/logproto"
+	"github.com/pexip/promtail-client/logproto"
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"

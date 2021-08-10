@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/habakke/promtail-client/promtail"
+	"github.com/pexip/promtail-client/promtail"
 	"log"
 	"net/http"
 	"os"

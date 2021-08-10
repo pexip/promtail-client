@@ -1,4 +1,4 @@
-module github.com/habakke/promtail-client
+module github.com/pexip/promtail-client
 
 go 1.16
 
