@@ -45,15 +45,11 @@ func NewClientProto(conf ClientConfig, parent *http.Client) (Client, error) {
 	return &client, nil
 }
 
-func (c *clientProto) Log(line string, level LogLevel, extraLabels LabelSet) {
-	now := time.Now().UnixNano()
+func (c *clientProto) Log(line string, level LogLevel, timestamp *timestamp.Timestamp, extraLabels LabelSet) {
 	c.entries <- protoLogEntry{
 		entry: &logproto.Entry{
-			Timestamp: &timestamp.Timestamp{
-				Seconds: now / int64(time.Second),
-				Nanos:   int32(now % int64(time.Second)),
-			},
-			Line: line,
+			Timestamp: timestamp,
+			Line:      line,
 		},
 		level:       level,
 		extraLabels: extraLabels.Copy(),

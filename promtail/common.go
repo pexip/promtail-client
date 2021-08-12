@@ -2,6 +2,7 @@ package promtail
 
 import (
 	"bytes"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -30,7 +31,7 @@ type ClientConfig struct {
 }
 
 type Client interface {
-	Log(Line string, level LogLevel, extraLabels LabelSet)
+	Log(Line string, level LogLevel, timestamp *timestamp.Timestamp, extraLabels LabelSet)
 	Shutdown()
 	Sent() int
 	Buffered() int

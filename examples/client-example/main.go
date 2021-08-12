@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/pexip/promtail-client/promtail"
 	"log"
 	"net/http"
@@ -79,12 +80,17 @@ func main() {
 
 	extralabels := promtail.LabelSet{}
 	for i := 1; i < 5; i++ {
-		tstamp := time.Now().String()
+		now := time.Now()
+		ts := &timestamp.Timestamp{
+			Seconds: now.UnixNano() / int64(time.Second),
+			Nanos:   int32(now.UnixNano() % int64(time.Second)),
+		}
+
 		extralabels.Append("seq", fmt.Sprintf("%d", i))
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.DEBUG, extralabels)
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.INFO, extralabels)
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.WARNING, extralabels)
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, tstamp), promtail.ERROR, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String()), promtail.DEBUG, ts, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String()), promtail.INFO, ts, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String()), promtail.WARNING, ts, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String()), promtail.ERROR, ts, extralabels)
 		time.Sleep(1 * time.Second)
 	}
 
