@@ -58,8 +58,8 @@ func (ls LabelSet) Fingerprint() uint64 {
 	}
 
 	var labels []string
-	for k := range ls {
-		labels = append(labels, k)
+	for k, v := range ls {
+		labels = append(labels, fmt.Sprintf("%s:%s", k, v))
 	}
 	sort.Strings(labels)
 	hash := hash(labels)

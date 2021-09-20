@@ -87,10 +87,10 @@ func main() {
 		}
 
 		extralabels.Append("seq", fmt.Sprintf("%d", i))
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String()), promtail.DEBUG, ts, extralabels)
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String()), promtail.INFO, ts, extralabels)
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String()), promtail.WARNING, ts, extralabels)
-		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String()), promtail.ERROR, ts, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String(), i), promtail.DEBUG, ts, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String(), i), promtail.INFO, ts, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String(), i), promtail.WARNING, ts, extralabels)
+		loki.Log(fmt.Sprintf("source = %s time = %s, i = %d\n", source_name, now.String(), i), promtail.ERROR, ts, extralabels)
 		time.Sleep(1 * time.Second)
 	}
 
